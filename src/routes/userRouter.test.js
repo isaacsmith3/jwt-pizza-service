@@ -91,6 +91,12 @@ test('updating without a token gets you nowhere', async () => {
   expect(res.status).toBe(401);
 });
 
+test('listing users without a token gets you nowhere', async () => {
+  const res = await request(app).get('/api/user');
+  expect(res.status).toBe(401);
+  expect(res.body.message).toBe('unauthorized');
+});
+
 test('listing users is still just a stub', async () => {
   const diner = await createDiner();
   const res = await request(app).get('/api/user').set('Authorization', `Bearer ${diner.token}`);
