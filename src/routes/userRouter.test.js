@@ -118,6 +118,21 @@ test('listing users is denied to diners', async () => {
   expect(res.body.message).toBe('unauthorized');
 });
 
+test('diners cannot delete themselves', async () => {
+  const diner = await createDiner();
+  const res = await request(app).delete(`/api/user/${diner.user.id}`).set('Authorization', `Bearer ${diner.token}`);
+  expect(res.status).toBe(403);
+  expect(res.body.message).toBe('unauthorized');
+});
+
+test('deleting a user that does not exist', async () => {
+  const admin = await createAdminUser();
+  const adminToken = (await loginUser(admin)).token;
+  const res = await request(app).delete('/api/user/999999').set('Authorization', `Bearer ${adminToken}`);
+  expect(res.status).toBe(404);
+  expect(res.body.message).toBe('unknown user');
+});
+
 test('deleting a user', async () => {
   const admin = await createAdminUser();
   const adminToken = (await loginUser(admin)).token;
