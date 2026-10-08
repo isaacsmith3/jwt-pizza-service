@@ -97,16 +97,32 @@ test('listing users without a token gets you nowhere', async () => {
   expect(res.body.message).toBe('unauthorized');
 });
 
-test('listing users is still just a stub', async () => {
+test('listing users', async () => {
+  const admin = await createAdminUser();
+  const adminToken = (await loginUser(admin)).token;
   const diner = await createDiner();
-  const res = await request(app).get('/api/user').set('Authorization', `Bearer ${diner.token}`);
+
+  const res = await request(app).get('/api/user').set('Authorization', `Bearer ${adminToken}`).query({ name: diner.user.name });
+
   expect(res.status).toBe(200);
-  expect(res.body).toMatchObject({ message: 'not implemented', users: [], more: false });
+  expect(res.body.more).toBe(false);
+  expect(res.body.users).toHaveLength(1);
+  expect(res.body.users[0]).toMatchObject({ id: diner.user.id, name: diner.user.name, email: diner.user.email, roles: [{ role: 'diner' }] });
+  expect(res.body.users[0].password).toBeUndefined();
 });
 
-test('deleting a user is still just a stub', async () => {
+test('listing users is denied to diners', async () => {
   const diner = await createDiner();
-  const res = await request(app).delete(`/api/user/${diner.user.id}`).set('Authorization', `Bearer ${diner.token}`);
+  const res = await request(app).get('/api/user').set('Authorization', `Bearer ${diner.token}`);
+  expect(res.status).toBe(403);
+  expect(res.body.message).toBe('unauthorized');
+});
+
+test('deleting a user', async () => {
+  const admin = await createAdminUser();
+  const adminToken = (await loginUser(admin)).token;
+  const diner = await createDiner();
+  const res = await request(app).delete(`/api/user/${diner.user.id}`).set('Authorization', `Bearer ${adminToken}`);
   expect(res.status).toBe(200);
-  expect(res.body.message).toBe('not implemented');
+  expect(res.body.message).toBe('user deleted');
 });
