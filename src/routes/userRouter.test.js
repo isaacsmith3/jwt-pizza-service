@@ -125,6 +125,18 @@ test('diners cannot delete themselves', async () => {
   expect(res.body.message).toBe('unauthorized');
 });
 
+test('admins cannot delete themselves', async () => {
+  const admin = await createAdminUser();
+  const adminAuth = await loginUser(admin);
+  const res = await request(app).delete(`/api/user/${adminAuth.user.id}`).set('Authorization', `Bearer ${adminAuth.token}`);
+  expect(res.status).toBe(403);
+  expect(res.body.message).toBe('cannot delete yourself');
+
+  // and they are still there afterwards
+  const check = await request(app).get('/api/user').set('Authorization', `Bearer ${adminAuth.token}`).query({ name: admin.name });
+  expect(check.body.users).toHaveLength(1);
+});
+
 test('deleting a user that does not exist', async () => {
   const admin = await createAdminUser();
   const adminToken = (await loginUser(admin)).token;

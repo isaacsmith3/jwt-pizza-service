@@ -93,6 +93,9 @@ userRouter.delete(
     if (!req.user.isRole(Role.Admin)) {
       return res.status(403).json({ message: 'unauthorized' });
     }
+    if (req.user.id === userId) {
+      return res.status(403).json({ message: 'cannot delete yourself' });
+    }
     await DB.deleteUser(userId);
     res.json({ message: 'user deleted' });
   })
