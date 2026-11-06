@@ -55,11 +55,13 @@ function pizzaPurchase(success, latencyMs, price, count) {
 
 function getCpuUsagePercentage() {
   const cpuUsage = os.loadavg()[0] / os.cpus().length;
+
   return Number((cpuUsage * 100).toFixed(2));
 }
 
 function getMemoryUsagePercentage() {
   const totalMemory = os.totalmem();
+
   const freeMemory = os.freemem();
   const usedMemory = totalMemory - freeMemory;
   return Number(((usedMemory / totalMemory) * 100).toFixed(2));
@@ -74,6 +76,7 @@ class OtelMetricBuilder {
   add(name, value, type, unit, attributes = {}) {
     const dataPoint = {
       timeUnixNano: Date.now() * 1000000,
+
       attributes: Object.entries({ source: config.metrics.source, ...attributes }).map(([key, v]) => ({
         key,
         value: { stringValue: String(v) },
@@ -88,6 +91,7 @@ class OtelMetricBuilder {
 
     const metric = { name, unit, [type]: { dataPoints: [dataPoint] } };
     if (type === 'sum') {
+
       metric[type].aggregationTemporality = 'AGGREGATION_TEMPORALITY_CUMULATIVE';
       metric[type].isMonotonic = true;
     }
@@ -124,6 +128,8 @@ function collect() {
 
   builder.add('pizzas_sold', pizzasSold, 'sum', '1');
   builder.add('pizza_failures', pizzaFailures, 'sum', '1');
+
+  
   builder.add('revenue', revenueTotal, 'sum', '1');
   builder.add('pizza_latency', pizzaLatencyTotal, 'sum', 'ms');
 
@@ -160,10 +166,6 @@ function sendMetricsPeriodically(period) {
   return timer;
 }
 
-// Tests require this module without wanting a live reporter. Jest sets
-// NODE_ENV=test, and CI writes the production config before running tests, so
-// without this guard a CI run would report test traffic under the production
-// source and corrupt the rate() calculations with counter resets.
 if (process.env.NODE_ENV !== 'test' && config.metrics && config.metrics.endpointUrl && config.metrics.apiKey) {
   sendMetricsPeriodically(5000);
 }
