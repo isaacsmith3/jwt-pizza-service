@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('node:crypto');
 const jwt = require('jsonwebtoken');
 const config = require('../config.js');
 const { asyncHandler } = require('../endpointHelper.js');
@@ -103,7 +104,7 @@ authRouter.delete(
 );
 
 async function setAuth(user) {
-  const token = jwt.sign(user, config.jwtSecret);
+  const token = jwt.sign(user, config.jwtSecret, { jwtid: crypto.randomUUID() });
   await DB.loginUser(user.id, token);
   return token;
 }

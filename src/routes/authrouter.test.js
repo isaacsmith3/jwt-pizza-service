@@ -21,6 +21,22 @@ test('login', async () => {
   expect(loginRes.body.user).toMatchObject(expectedUser);
 });
 
+test('concurrent logins of the same user get independent sessions', async () => {
+  const [first, second] = await Promise.all([
+    request(app).put('/api/auth').send(testUser),
+    request(app).put('/api/auth').send(testUser),
+  ]);
+  expect(first.status).toBe(200);
+  expect(second.status).toBe(200);
+  expect(first.body.token).not.toBe(second.body.token);
+
+  const firstLogout = await request(app).delete('/api/auth').set('Authorization', `Bearer ${first.body.token}`);
+  expect(firstLogout.status).toBe(200);
+
+  const secondLogout = await request(app).delete('/api/auth').set('Authorization', `Bearer ${second.body.token}`);
+  expect(secondLogout.status).toBe(200);
+});
+
 function expectValidJwt(potentialJwt) {
   expect(potentialJwt).toMatch(/^[a-zA-Z0-9\-_]*\.[a-zA-Z0-9\-_]*\.[a-zA-Z0-9\-_]*$/);
 }
