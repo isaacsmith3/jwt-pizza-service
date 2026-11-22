@@ -147,3 +147,15 @@ test('deleting a franchise without a token is unauthorized', async () => {
   const res = await request(app).delete(`/api/franchise/${franchise.id}`);
   expect(res.status).toBe(401);
 });
+
+// A diner cannot delete a franchise, and the franchise still exists afterwards
+test('diner cannot delete a franchise', async () => {
+  const franchise = await createFranchise(adminUser.email);
+  const diner = await createDiner();
+  const res = await request(app).delete(`/api/franchise/${franchise.id}`).set('Authorization', `Bearer ${diner.token}`);
+  expect(res.status).toBe(403);
+  expect(res.body.message).toBe('unable to delete a franchise');
+
+  const list = await request(app).get(`/api/franchise?name=${franchise.name}`);
+  expect(list.body.franchises.some((f) => f.id === franchise.id)).toBe(true);
+});
