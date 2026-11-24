@@ -55,3 +55,44 @@ describe('addMenuItem', () => {
     expect(res.body.message).toBe('unable to add menu item');
   });
 });
+
+describe('chaos', () => {
+  const order = { franchiseId: 1, storeId: 1, items: [{ menuId: 1, description: 'Veggie', price: 0.05 }] };
+
+  afterEach(async () => {
+    jest.restoreAllMocks();
+    const admin = await createAdminUser();
+    const adminToken = (await loginUser(admin)).token;
+    await request(app).put('/api/order/chaos/false').set('Authorization', `Bearer ${adminToken}`);
+  });
+
+  test('a diner cannot turn on chaos', async () => {
+    const diner = await createDiner();
+    const res = await request(app).put('/api/order/chaos/true').set('Authorization', `Bearer ${diner.token}`);
+    expect(res.status).toBe(403);
+    expect(res.body.message).toBe('unable to change chaos');
+  });
+
+  test('turning on chaos without a token is unauthorized', async () => {
+    const res = await request(app).put('/api/order/chaos/true');
+    expect(res.status).toBe(401);
+  });
+
+  test('an admin turns chaos on and orders fail', async () => {
+    const admin = await createAdminUser();
+    const adminToken = (await loginUser(admin)).token;
+
+    const on = await request(app).put('/api/order/chaos/true').set('Authorization', `Bearer ${adminToken}`);
+    expect(on.status).toBe(200);
+    expect(on.body).toEqual({ chaos: true });
+
+    jest.spyOn(Math, 'random').mockReturnValue(0.1);
+    const diner = await createDiner();
+    const res = await request(app).post('/api/order').set('Authorization', `Bearer ${diner.token}`).send(order);
+    expect(res.status).toBe(500);
+    expect(res.body.message).toBe('Chaos monkey');
+
+    const off = await request(app).put('/api/order/chaos/false').set('Authorization', `Bearer ${adminToken}`);
+    expect(off.body).toEqual({ chaos: false });
+  });
+});

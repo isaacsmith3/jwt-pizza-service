@@ -28,10 +28,10 @@ function snapshot() {
   return metrics.collect();
 }
 
-function runRequest(method) {
+function runRequest(method, statusCode = 200) {
   const req = { method };
   let finish;
-  const res = { on: (event, cb) => (event === 'finish' ? (finish = cb) : null) };
+  const res = { statusCode, on: (event, cb) => (event === 'finish' ? (finish = cb) : null) };
   const next = jest.fn();
   metrics.requestTracker(req, res, next);
   expect(next).toHaveBeenCalled();
@@ -59,6 +59,13 @@ describe('requestTracker', () => {
       .filter((m) => m.name === 'requests')
       .reduce((sum, m) => sum + m.sum.dataPoints[0].asInt, 0);
     expect(valueOf(builder, 'requests_all')).toBe(perMethod);
+  });
+
+  test('counts 5xx responses as server errors', () => {
+    const before = valueOf(snapshot(), 'server_errors');
+    runRequest('POST', 500);
+    runRequest('GET', 404);
+    expect(valueOf(snapshot(), 'server_errors')).toBe(before + 1);
   });
 
   test('records elapsed time for the request', () => {

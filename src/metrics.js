@@ -4,6 +4,7 @@ const config = require('./config.js');
 // In-memory counters
 const requestsByMethod = {};
 let requestLatencyTotal = 0;
+let serverErrors = 0;
 let authSuccess = 0;
 let authFailure = 0;
 let activeUsers = 0;
@@ -20,6 +21,9 @@ function requestTracker(req, res, next) {
 
   res.on('finish', () => {
     requestLatencyTotal += Date.now() - start;
+    if (res.statusCode >= 500) {
+      serverErrors++;
+    }
   });
 
   next();
@@ -117,6 +121,7 @@ function collect() {
   builder.add('requests_all', totalRequests, 'sum', '1');
 
   builder.add('request_latency', requestLatencyTotal, 'sum', 'ms');
+  builder.add('server_errors', serverErrors, 'sum', '1');
 
   builder.add('auth', authSuccess, 'sum', '1', { success: 'true' });
   builder.add('auth', authFailure, 'sum', '1', { success: 'false' });
